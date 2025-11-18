@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
 import { Heart, MessageCircle, Bookmark } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Post } from "../../types";
 
 interface PostCardProps {
@@ -7,6 +9,112 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(post._count.likes);
+  const [bookmark, setBookmark] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [busyLike, setBusyLike] = useState(false);
+  const [busyBookmark, setBusyBookmark] = useState(false);
+  const [busyComment, setBusyComment] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post._count.comments);
+
+  useEffect(() => {
+    let mounted = true;
+    const postId = post.id;
+    Promise.all([
+      fetch(`/api/post/${postId}/like`).then((r) => r.ok ? r.json() : null),
+      fetch(`/api/post/${postId}/bookmark`).then((r) => r.ok ? r.json() : null),
+    ])
+      .then(([likeData, bookmarkData]) => {
+        if (!mounted) return;
+        if (likeData) {
+          setLiked(!!likeData.liked);
+          if (typeof likeData.likeCount === "number") setLikeCount(likeData.likeCount);
+        }
+        if (bookmarkData) {
+          setBookmark(!!bookmarkData.bookmarked);
+        }
+      })
+      .catch(() => {})
+      ;
+    return () => {
+      mounted = false;
+    };
+  }, [post.id]);
+
+  async function toggleLike() {
+    if (busyLike) return;
+    setBusyLike(true);
+    const postId = post.id;
+    try {
+      const nextLiked = !liked;
+      const method = liked ? "DELETE" : "POST";
+      setLiked(nextLiked);
+      setLikeCount((c) => c + (nextLiked ? 1 : -1));
+      const res = await fetch(`/api/post/${postId}/like`, { method });
+      const data = await res.json();
+      if (!res.ok) {
+        setLiked(!nextLiked);
+        setLikeCount((c) => c + (nextLiked ? -1 : 1));
+        if (data?.error) alert(data.error);
+        else alert("Failed to update like");
+        return;
+      }
+      if (typeof data.likeCount === "number") setLikeCount(data.likeCount);
+    } finally {
+      setBusyLike(false);
+    }
+  }
+
+  async function toggleBookmark() {
+    if (busyBookmark) return;
+    setBusyBookmark(true);
+    const postId = post.id;
+    try {
+      const nextBookmark = !bookmark;
+      const method = bookmark ? "DELETE" : "POST";
+      setBookmark(nextBookmark);
+      const res = await fetch(`/api/post/${postId}/bookmark`, { method });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setBookmark(!nextBookmark);
+        if (data?.error) alert(data.error);
+        else alert("Failed to update bookmark");
+        return;
+      }
+      if (nextBookmark) alert("Added to bookmarks");
+    } finally {
+      setBusyBookmark(false);
+    }
+  }
+
+  async function submitComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (busyComment || !commentText.trim()) return;
+    setBusyComment(true);
+    const postId = post.id;
+    try {
+      const res = await fetch(`/api/post/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setCommentText("");
+        setCommentOpen(false);
+        setCommentsCount((c) => c + 1);
+        alert("Comment posted");
+      } else {
+        if (data?.error) alert(data.error);
+        else alert("Failed to post comment");
+      }
+    } finally {
+      setBusyComment(false);
+    }
+  }
+
   return (
     <article className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100">
       {/* Author Info */}
@@ -23,7 +131,7 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
         )}
         <Link
-          href={`/@${post.author.username}`}
+          href={`/`}
           className="text-sm font-medium text-gray-900 hover:text-yellow-700 transition"
         >
           {post.author.name}
@@ -33,7 +141,7 @@ export default function PostCard({ post }: PostCardProps) {
       {/* Content */}
       <div className="flex gap-6">
         <div className="flex-1">
-          <Link href={`/post/${post.slug}`}>
+          <Link href={`/`}>
             <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-yellow-700 transition text-gray-900">
               {post.title}
             </h2>
@@ -72,17 +180,34 @@ export default function PostCard({ post }: PostCardProps) {
 
             {/* Actions */}
             <div className="flex items-center space-x-4 text-gray-500">
-              <button className="flex items-center space-x-1 hover:text-yellow-600 transition" aria-label="Likes">
-                <Heart className="w-4 h-4" />
-                <span className="text-sm">{post._count.likes}</span>
+              <button
+                onClick={toggleLike}
+                disabled={busyLike}
+                className={`flex items-center space-x-1 transition ${liked ? "text-yellow-600" : "hover:text-yellow-600"}`}
+                aria-label="Likes"
+                aria-pressed={liked}
+              >
+                <Heart className="w-4 h-4" fill={liked ? "currentColor" : "none"} stroke={liked ? "currentColor" : undefined} />
+                <span className="text-sm">{likeCount}</span>
               </button>
-              <button className="flex items-center space-x-1 hover:text-yellow-600 transition" aria-label="Comments">
+              <button
+                onClick={() => setCommentOpen((o) => !o)}
+                className="flex items-center space-x-1 hover:text-yellow-600 transition"
+                aria-label="Comments"
+                aria-expanded={commentOpen}
+              >
                 <MessageCircle className="w-4 h-4" />
-                <span className="text-sm">{post._count.comments}</span>
+                <span className="text-sm">{commentsCount}</span>
               </button>
-              <Link href={`/post/${post.slug}`} className="hover:text-yellow-700 transition" aria-label="Bookmark">
-                <Bookmark className="w-4 h-4" />
-              </Link>
+              <button
+                onClick={toggleBookmark}
+                disabled={busyBookmark}
+                className={`transition ${bookmark ? "text-yellow-600" : "hover:text-yellow-700"}`}
+                aria-label="Bookmark"
+                aria-pressed={bookmark}
+              >
+                <Bookmark className="w-4 h-4" fill={bookmark ? "currentColor" : "none"} stroke={bookmark ? "currentColor" : undefined} />
+              </button>
             </div>
           </div>
         </div>
@@ -98,6 +223,25 @@ export default function PostCard({ post }: PostCardProps) {
           </Link>
         )}
       </div>
+      {commentOpen && (
+        <form onSubmit={submitComment} className="mt-4 space-y-3">
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Write a comment..."
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-600"
+          />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={busyComment || !commentText.trim()}
+              className="inline-flex items-center justify-center rounded-md bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 disabled:opacity-50"
+            >
+              {busyComment ? "Posting..." : "Post Comment"}
+            </button>
+          </div>
+        </form>
+      )}
     </article>
   );
 }
