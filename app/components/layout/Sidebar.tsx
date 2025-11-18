@@ -64,13 +64,13 @@ export default function Sidebar({ trendingTags = [], staffPicks = [] }: SidebarP
                       {post.author.name.substring(0, 2).toUpperCase()}
                     </div>
                     <Link
-                      href={`/@${post.author.username}`}
+                      href={`/`}
                       className="text-xs font-medium text-gray-700 hover:text-yellow-700 transition"
                     >
                       {post.author.name}
                     </Link>
                   </div>
-                  <Link href={`/post/${post.slug}`}>
+                  <Link href={`/`}>
                     <h4 className="text-sm font-semibold line-clamp-2 mb-1 text-gray-900 hover:text-yellow-700 transition">
                       {post.title}
                     </h4>
