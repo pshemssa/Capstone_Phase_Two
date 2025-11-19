@@ -5,7 +5,7 @@ import { authOptions } from "../../../lib/auth";
 import {prisma} from "../../../lib/prisma";
 import Link from "next/link";
 import PostActions from "../../../components/post/PostActions";
-import CommentSection from "../../../components/post/CommentSection";
+
 
 
 async function getPost(slug: string) {
@@ -190,11 +190,6 @@ export default async function PostPage({
             </div>
           </div>
         )}
-
-        {/* Comments */}
-        <div className="mt-8">
-          <CommentSection postId={post.id} />
-        </div>
       </main>
     </div>
   );
