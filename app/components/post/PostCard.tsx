@@ -248,7 +248,7 @@ export default function PostCard({ post }: PostCardProps) {
                   if (!ensureAuthenticated()) return;
                   setCommentOpen((o) => !o);
                 }}
-                className="flex items-center space-x-1.5 px-2 py-1 rounded-md hover:text-blue-600 hover:bg-blue-50 transition-all"
+                className="flex items-center space-x-1.5 px-2 py-1 rounded-md hover:text-yellow-800 hover:bg-yellow text-yellow-800 transition-all"
                 aria-label="Comments"
                 aria-expanded={commentOpen}
                 title="View comments"

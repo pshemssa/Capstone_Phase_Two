@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   description: "Manage your stories",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function getMyPosts(session: any) {
   if (!session?.user?.email) {
     return [];

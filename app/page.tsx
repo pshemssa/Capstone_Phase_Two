@@ -54,15 +54,13 @@ async function getPosts(limit: number = 10): Promise<Post[]> {
 }
 
 async function getTrendingTags(): Promise<string[]> {
-  return [
-    "JavaScript",
-    "React",
-    "Next.js",
-    "TypeScript",
-    "Web Development",
-    "AI",
-    "Design",
-  ];
+  const tags = await prisma.tag.findMany({
+    select: { name: true },
+    orderBy: { posts: { _count: "desc" } },
+    take: 10,
+  });
+
+  return tags.map((t) => t.name);
 }
 
 async function getStaffPicks() {

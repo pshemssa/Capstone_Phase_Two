@@ -160,7 +160,7 @@ export default function PostActions({ post }: PostActionsProps) {
             variant="ghost"
             size="sm"
             onClick={() => document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" })}
-            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+            className="text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 transition-all"
             aria-label="View comments"
           >
             <MessageCircle className="w-5 h-5 mr-2" />
@@ -193,7 +193,7 @@ export default function PostActions({ post }: PostActionsProps) {
             variant="ghost" 
             size="sm" 
             onClick={handleShare} 
-            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+            className="text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 transition-all"
             aria-label="Share this post"
           >
             <Share2 className="w-5 h-5" />

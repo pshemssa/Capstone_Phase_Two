@@ -7,9 +7,8 @@ export default function Navigation() {
   const [activeTab, setActiveTab] = useState("home");
 
   const tabs = [
-    { id: "home", icon: Home, label: "For you" },
-    { id: "following", icon: BookOpen, label: "Following" },
-    { id: "trending", icon: TrendingUp, label: "Trending" },
+    { id: "home", icon: Home, label: "Latest" },
+   
   ];
 
   return (

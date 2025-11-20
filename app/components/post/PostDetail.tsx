@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Calendar, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import FollowButton from "../users/FollowButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,6 +99,11 @@ export default function PostDetail({ post, isAuthor }: PostDetailProps) {
               </div>
             </div>
           </div>
+          {!isAuthor && (
+            <div>
+              <FollowButton username={post.author.username} />
+            </div>
+          )}
 
           {/* Edit/Delete Buttons for Author */}
           {isAuthor && (
