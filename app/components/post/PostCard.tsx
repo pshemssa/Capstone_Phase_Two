@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { Heart, MessageCircle, Bookmark } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Post } from "../../types";
 
 interface PostCardProps {
@@ -18,6 +20,29 @@ export default function PostCard({ post }: PostCardProps) {
   const [busyBookmark, setBusyBookmark] = useState(false);
   const [busyComment, setBusyComment] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post._count.comments);
+  const { status } = useSession();
+  const router = useRouter();
+  const isAuthenticated = status === "authenticated";
+  const isSessionLoading = status === "loading";
+
+  const buildCallbackUrl = () => {
+    if (typeof window === "undefined") {
+      return `/post/${post.slug}`;
+    }
+    const { pathname, search } = window.location;
+    return `${pathname}${search || ""}`;
+  };
+
+  const ensureAuthenticated = () => {
+    if (isSessionLoading) {
+      return false;
+    }
+    if (!isAuthenticated) {
+      router.push(`/login?callbackUrl=${encodeURIComponent(buildCallbackUrl())}`);
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -45,6 +70,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   async function toggleLike() {
     if (busyLike) return;
+    if (!ensureAuthenticated()) return;
     setBusyLike(true);
     const postId = post.id;
     try {
@@ -69,21 +95,28 @@ export default function PostCard({ post }: PostCardProps) {
 
   async function toggleBookmark() {
     if (busyBookmark) return;
+    if (!ensureAuthenticated()) return;
     setBusyBookmark(true);
     const postId = post.id;
+    const previousBookmark = bookmark;
     try {
-      const nextBookmark = !bookmark;
-      const method = bookmark ? "DELETE" : "POST";
+      const nextBookmark = !previousBookmark;
+      const method = previousBookmark ? "DELETE" : "POST";
+      // Optimistic update
       setBookmark(nextBookmark);
       const res = await fetch(`/api/post/${postId}/bookmark`, { method });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setBookmark(!nextBookmark);
-        if (data?.error) alert(data.error);
-        else alert("Failed to update bookmark");
+        // Revert on error
+        setBookmark(previousBookmark);
+        console.error(data?.error || "Failed to update bookmark");
         return;
       }
-      if (nextBookmark) alert("Added to bookmarks");
+      // Success - state already updated optimistically
+    } catch (error) {
+      // Revert on error
+      setBookmark(previousBookmark);
+      console.error("Error toggling bookmark:", error);
     } finally {
       setBusyBookmark(false);
     }
@@ -92,6 +125,7 @@ export default function PostCard({ post }: PostCardProps) {
   async function submitComment(e: React.FormEvent) {
     e.preventDefault();
     if (busyComment || !commentText.trim()) return;
+    if (!ensureAuthenticated()) return;
     setBusyComment(true);
     const postId = post.id;
     try {
@@ -116,7 +150,10 @@ export default function PostCard({ post }: PostCardProps) {
   }
 
   return (
-    <article className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100">
+    <article 
+      className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-100 hover:border-yellow-200"
+      onClick={() => window.location.href = `/post/${post.slug}`}
+    >
       {/* Author Info */}
       <div className="flex items-center space-x-2 mb-3">
         {post.author.image ? (
@@ -131,8 +168,9 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
         )}
         <Link
-          href={`/`}
+          href={`/users/${post.author.username}`}
           className="text-sm font-medium text-gray-900 hover:text-yellow-700 transition"
+          onClick={(e) => e.stopPropagation()}
         >
           {post.author.name}
         </Link>
@@ -141,7 +179,7 @@ export default function PostCard({ post }: PostCardProps) {
       {/* Content */}
       <div className="flex gap-6">
         <div className="flex-1">
-          <Link href={`/`}>
+          <Link href={`/post/${post.slug}`} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-yellow-700 transition text-gray-900">
               {post.title}
             </h2>
@@ -181,32 +219,64 @@ export default function PostCard({ post }: PostCardProps) {
             {/* Actions */}
             <div className="flex items-center space-x-4 text-gray-500">
               <button
-                onClick={toggleLike}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleLike();
+                }}
                 disabled={busyLike}
-                className={`flex items-center space-x-1 transition ${liked ? "text-yellow-600" : "hover:text-yellow-600"}`}
-                aria-label="Likes"
+                className={`flex items-center space-x-1.5 px-2 py-1 rounded-md transition-all ${
+                  liked 
+                    ? "text-red-600 bg-red-50 hover:bg-red-100" 
+                    : "hover:text-red-600 hover:bg-gray-50"
+                } ${busyLike ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                aria-label={`${liked ? "Unlike" : "Like"} this post`}
                 aria-pressed={liked}
+                title={liked ? "Unlike" : "Like"}
               >
-                <Heart className="w-4 h-4" fill={liked ? "currentColor" : "none"} stroke={liked ? "currentColor" : undefined} />
-                <span className="text-sm">{likeCount}</span>
+                <Heart 
+                  className={`w-4 h-4 transition-transform ${liked ? "scale-110" : ""} ${busyLike ? "animate-pulse" : ""}`} 
+                  fill={liked ? "currentColor" : "none"} 
+                  strokeWidth={liked ? 0 : 2}
+                />
+                <span className="text-sm font-medium">{likeCount}</span>
               </button>
               <button
-                onClick={() => setCommentOpen((o) => !o)}
-                className="flex items-center space-x-1 hover:text-yellow-600 transition"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!ensureAuthenticated()) return;
+                  setCommentOpen((o) => !o);
+                }}
+                className="flex items-center space-x-1.5 px-2 py-1 rounded-md hover:text-blue-600 hover:bg-blue-50 transition-all"
                 aria-label="Comments"
                 aria-expanded={commentOpen}
+                title="View comments"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span className="text-sm">{commentsCount}</span>
+                <span className="text-sm font-medium">{commentsCount}</span>
               </button>
               <button
-                onClick={toggleBookmark}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleBookmark();
+                }}
                 disabled={busyBookmark}
-                className={`transition ${bookmark ? "text-yellow-600" : "hover:text-yellow-700"}`}
-                aria-label="Bookmark"
+                className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-all ${
+                  bookmark 
+                    ? "text-yellow-600 bg-yellow-50 hover:bg-yellow-100" 
+                    : "hover:text-yellow-600 hover:bg-gray-50"
+                } ${busyBookmark ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                aria-label={`${bookmark ? "Remove bookmark" : "Bookmark"} this post`}
                 aria-pressed={bookmark}
+                title={bookmark ? "Remove bookmark" : "Bookmark"}
               >
-                <Bookmark className="w-4 h-4" fill={bookmark ? "currentColor" : "none"} stroke={bookmark ? "currentColor" : undefined} />
+                <Bookmark 
+                  className={`w-4 h-4 transition-transform ${bookmark ? "scale-110" : ""} ${busyBookmark ? "animate-pulse" : ""}`} 
+                  fill={bookmark ? "currentColor" : "none"} 
+                  strokeWidth={bookmark ? 0 : 2}
+                />
               </button>
             </div>
           </div>

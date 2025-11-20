@@ -78,7 +78,7 @@ export default function PostDetail({ post, isAuthor }: PostDetailProps) {
             )}
             <div>
               <Link
-                href={`/@${post.author.username}`}
+                href={`/users/${post.author.username}`}
                 className="font-semibold text-gray-900 hover:text-yellow-700 transition"
               >
                 {post.author.name}

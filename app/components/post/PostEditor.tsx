@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,19 +41,38 @@ interface PostData {
   published: boolean;
 }
 
-export default function PostEditor() {
+interface PostEditorProps {
+  initialData?: PostData & { id?: string };
+}
+
+export default function PostEditor({ initialData }: PostEditorProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const editor = useRef(null);
+  const isEditing = !!initialData?.id;
 
   const [postData, setPostData] = useState<PostData>({
-    title: "",
-    content: "",
-    excerpt: "",
-    coverImage: "",
-    tags: [],
-    published: false,
+    title: initialData?.title || "",
+    content: initialData?.content || "",
+    excerpt: initialData?.excerpt || "",
+    coverImage: initialData?.coverImage || "",
+    tags: initialData?.tags || [],
+    published: initialData?.published || false,
   });
+
+  // Update state when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setPostData({
+        title: initialData.title || "",
+        content: initialData.content || "",
+        excerpt: initialData.excerpt || "",
+        coverImage: initialData.coverImage || "",
+        tags: initialData.tags || [],
+        published: initialData.published || false,
+      });
+    }
+  }, [initialData]);
 
   const [currentTag, setCurrentTag] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -131,19 +150,31 @@ export default function PostEditor() {
     }
 
     setImageUploading(true);
+    setError("");
 
     try {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPostData((prev) => ({
-          ...prev,
-          coverImage: reader.result as string,
-        }));
-        setImageUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      setError("Failed to upload image");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to upload image");
+      }
+
+      const data = await response.json();
+      setPostData((prev) => ({
+        ...prev,
+        coverImage: data.url,
+      }));
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image");
+      setTimeout(() => setError(""), 3000);
+    } finally {
       setImageUploading(false);
     }
   };
@@ -159,10 +190,11 @@ export default function PostEditor() {
     setError("");
 
     try {
-      console.log("💾 Saving draft...", postData);
+      const url = isEditing ? `/api/post/${initialData?.id}` : "/api/post";
+      const method = isEditing ? "PUT" : "POST";
 
-      const response = await fetch("/api/post", {
-        method: "POST",
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -176,20 +208,14 @@ export default function PostEditor() {
         }),
       });
 
-      console.log("📡 Response status:", response.status);
-
       const result = await response.json();
-      console.log("📦 Response data:", result);
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to save draft");
       }
 
-      // The API returns the post directly, not wrapped in 'data'
-      const slug = result.slug;
-      console.log("✅ Draft saved, redirecting to:", `/post/${slug}`);
-      
-      router.push(`/post/`);
+      const slug = result.data?.slug || result.slug;
+      router.push(`/post/${slug}`);
       router.refresh();
     } catch (err: any) {
       console.error("❌ Error saving draft:", err);
@@ -216,14 +242,11 @@ export default function PostEditor() {
     setError("");
 
     try {
-      console.log("🚀 Publishing post...", {
-        title: postData.title,
-        contentLength: postData.content.length,
-        tags: postData.tags,
-      });
+      const url = isEditing ? `/api/post/${initialData?.id}` : "/api/post";
+      const method = isEditing ? "PUT" : "POST";
 
-      const response = await fetch("/api/post", {
-        method: "POST",
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -237,30 +260,14 @@ export default function PostEditor() {
         }),
       });
 
-      console.log("📡 Response status:", response.status);
-      console.log("📡 Response headers:", response.headers.get("content-type"));
-
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("❌ Not JSON response:", text.substring(0, 200));
-        throw new Error("Server returned non-JSON response. Check server logs.");
-      }
-
       const result = await response.json();
-      console.log("📦 Response data:", result);
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to publish post");
       }
 
-      // The API returns the post directly
-      const slug = result.slug;
-      console.log("✅ Post published! Slug:", slug);
-      
-      // Redirect to the published post
-      router.push('/');
+      const slug = result.data?.slug || result.slug;
+      router.push(`/post/${slug}`);
       router.refresh();
     } catch (err: any) {
       console.error("❌ Error publishing:", err);
@@ -282,7 +289,7 @@ export default function PostEditor() {
                 Back
               </Button>
               <div className="hidden sm:block text-sm text-gray-500">
-                {isSaving ? "Saving..." : "Draft"}
+                {isSaving ? "Saving..." : isEditing ? "Editing" : "Draft"}
               </div>
             </div>
 

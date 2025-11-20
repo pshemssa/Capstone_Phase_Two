@@ -154,9 +154,15 @@ export default function Header() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={`/profile/@${(session?.user as any)?.username}`}>
+                      <Link href={`/users/${(session?.user as any)?.username || ''}`}>
                         <User className="mr-2 h-4 w-4" />
                         Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-posts">
+                        <List className="mr-2 h-4 w-4" />
+                        My Posts
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -224,7 +230,7 @@ export default function Header() {
                 </Link>
                 {/* Removed Followers link */}
                 <Link
-                  href={`/@${(session?.user as any)?.username}`}
+                  href={`/users/${(session?.user as any)?.username || ""}`}
                   className="block text-white hover:text-yellow-400 transition font-medium"
                   onClick={() => setMobileOpen(false)}
                 >
