@@ -18,6 +18,41 @@ const passwordSchema = z.object({
   newPassword: z.string().min(6, "New password must be at least 6 characters"),
 });
 
+const bioSchema = z.object({
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+  name: z.string().min(1).max(100).optional(),
+});
+
+// GET — Get current user
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        image: true,
+        bio: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
 // PUT — Update username
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -87,6 +122,53 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Invalid data" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+// POST — Update bio and name
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const validatedData = bioSchema.parse(body);
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
+        ...(validatedData.name !== undefined && { name: validatedData.name }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        image: true,
+        bio: true,
+      },
+    });
+
+    return NextResponse.json({ message: "Profile updated", user: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Invalid data" },
+        { status: 400 }
+      );
     }
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
