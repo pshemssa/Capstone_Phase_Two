@@ -51,6 +51,9 @@ export async function GET(req: NextRequest) {
           orderBy: {
             createdAt: "asc",
           },
+          orderBy: {
+            createdAt: "asc",
+          },
         },
       },
       orderBy: {
@@ -73,10 +76,23 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Get user ID from database
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
@@ -87,7 +103,7 @@ export async function POST(req: NextRequest) {
       data: {
         content: validatedData.content,
         postId: validatedData.postId,
-        authorId: (session.user as any).id,
+        authorId: user.id,
         parentId: validatedData.parentId,
       },
       include: {
@@ -97,6 +113,12 @@ export async function POST(req: NextRequest) {
             name: true,
             username: true,
             image: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            slug: true,
           },
         },
       },
