@@ -9,18 +9,20 @@ import { Post } from "./types";
 import { prisma } from "./lib/prisma";
 
 // Fetch published posts from the database and map to UI-friendly shape
-async function getPosts(): Promise<Post[]> {
-  const posts = await prisma.post.findMany({
-    where: { published: true },
-    orderBy: { publishedAt: "desc" },
-    include: {
-      author: {
-        select: { id: true, name: true, username: true, image: true },
+async function getPosts(limit: number = 10): Promise<Post[]> {
+  try {
+    const posts = await prisma.post.findMany({
+      where: { published: true },
+      orderBy: { publishedAt: "desc" },
+      include: {
+        author: {
+          select: { id: true, name: true, username: true, image: true },
+        },
+        tags: { select: { name: true, slug: true } },
+        _count: { select: { likes: true, comments: true } },
       },
-      tags: { select: { name: true, slug: true } },
-      _count: { select: { likes: true, comments: true } },
-    },
-  });
+      take: limit,
+    });
 
   return posts.map((post: any) => ({
     id: post.id,
@@ -44,6 +46,11 @@ async function getPosts(): Promise<Post[]> {
     tags: post.tags.map((t: any) => t.name),
     _count: post._count,
   }));
+  } catch (error: any) {
+    console.error("Error fetching posts:", error);
+    // Return empty array on error instead of crashing
+    return [];
+  }
 }
 
 async function getTrendingTags(): Promise<string[]> {
@@ -88,8 +95,11 @@ function PostsLoading() {
   );
 }
 
+// Revalidate every 60 seconds (ISR)
+export const revalidate = 60;
+
 export default async function HomePage() {
-  const posts = await getPosts();
+  const posts = await getPosts(10);
   const trendingTags = await getTrendingTags();
   const staffPicks = await getStaffPicks();
 

@@ -25,12 +25,11 @@ async function getPostsByTag(tag: string) {
   }
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { tag: string };
-}): Promise<Metadata> {
-  const formattedTag = decodeURIComponent(params.tag).replace(/-/g, " ");
+export async function generateMetadata(
+  context: { params: Promise<{ tag: string }> }
+): Promise<Metadata> {
+  const { tag } = await context.params;
+  const formattedTag = decodeURIComponent(tag).replace(/-/g, " ");
 
   return {
     title: `${formattedTag} Stories | Lumen Yard`,
@@ -38,8 +37,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function TagPage({ params }: { params: { tag: string } }) {
-  const tagSlug = decodeURIComponent(params.tag);
+export default async function TagPage(
+  context: { params: Promise<{ tag: string }> }
+) {
+  const { tag } = await context.params;
+  const tagSlug = decodeURIComponent(tag);
   const formattedTag = tagSlug.replace(/-/g, " ");
   const { posts, total } = await getPostsByTag(tagSlug);
 

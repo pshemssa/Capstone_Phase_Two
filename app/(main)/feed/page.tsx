@@ -16,17 +16,79 @@ export const metadata: Metadata = {
   description: "Read stories from writers you follow",
 };
 
-async function getFollowingPosts() {
-  // For now, show recent published posts. Later filter by followed authors.
+async function getFollowingPosts(session: any) {
+  if (!session?.user) {
+    return [];
+  }
+
+  // Get user ID
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  // Get users that the current user follows
+  const following = await prisma.follow.findMany({
+    where: { followerId: user.id },
+    select: { followingId: true },
+  });
+
+  const followingIds = following.map((f) => f.followingId);
+
+  // If not following anyone, show recent posts
+  if (followingIds.length === 0) {
+    const posts = await prisma.post.findMany({
+      where: { published: true },
+      orderBy: { publishedAt: "desc" },
+      include: {
+        author: { select: { id: true, name: true, username: true, image: true } },
+        tags: { select: { name: true, slug: true } },
+        _count: { select: { likes: true, comments: true } },
+      },
+      take: 10,
+    });
+
+    return posts.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      content: undefined,
+      excerpt: post.excerpt || "",
+      coverImage: post.coverImage || null,
+      published: post.published,
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+      readTime: post.readTime ?? 0,
+      authorId: post.authorId,
+      author: {
+        id: post.author.id,
+        name: post.author.name ?? "Anonymous",
+        username: post.author.username,
+        image: post.author.image ?? null,
+      },
+      tags: post.tags.map((t: any) => t.name),
+      _count: post._count,
+    }));
+  }
+
+  // Get posts from followed authors
   const posts = await prisma.post.findMany({
-    where: { published: true },
+    where: {
+      published: true,
+      authorId: { in: followingIds },
+    },
     orderBy: { publishedAt: "desc" },
     include: {
       author: { select: { id: true, name: true, username: true, image: true } },
       tags: { select: { name: true, slug: true } },
       _count: { select: { likes: true, comments: true } },
     },
-    take: 10,
+    take: 20,
   });
 
   return posts.map((post: any) => ({
@@ -77,7 +139,7 @@ export default async function FeedPage() {
     redirect("/login?callbackUrl=/feed");
   }
 
-  const posts = await getFollowingPosts();
+  const posts = await getFollowingPosts(session);
 
   return (
     <div className="min-h-screen bg-gray-50">

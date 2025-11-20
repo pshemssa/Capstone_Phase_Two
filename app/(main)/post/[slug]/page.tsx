@@ -5,6 +5,10 @@ import { authOptions } from "../../../lib/auth";
 import {prisma} from "../../../lib/prisma";
 import Link from "next/link";
 import PostActions from "../../../components/post/PostActions";
+import CommentsSection from "../../../components/post/CommentsSection";
+import Header from "../../../components/layout/Header";
+import Footer from "../../../components/layout/Footer";
+import DeletePostButton from "../../../components/post/DeletePostButton";
 
 
 
@@ -40,12 +44,11 @@ async function getPost(slug: string) {
   }
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const post = await getPost(params.slug);
+export async function generateMetadata(
+  context: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const { slug } = await context.params;
+  const post = await getPost(slug);
 
   if (!post) {
     return {
@@ -53,26 +56,48 @@ export async function generateMetadata({
     };
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const postUrl = `${siteUrl}/post/${post.slug}`;
+
   return {
     title: `${post.title} | Lumen Yard`,
-    description: post.excerpt || undefined,
+    description: post.excerpt || post.content.substring(0, 160).replace(/<[^>]*>/g, ""),
     openGraph: {
       title: post.title,
-      description: post.excerpt || undefined,
-      images: post.coverImage ? [post.coverImage] : [],
+      description: post.excerpt || post.content.substring(0, 160).replace(/<[^>]*>/g, ""),
+      url: postUrl,
+      siteName: "Lumen Yard",
+      images: post.coverImage ? [
+        {
+          url: post.coverImage,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        }
+      ] : [],
       type: "article",
       publishedTime: post.publishedAt?.toISOString(),
+      modifiedTime: post.updatedAt.toISOString(),
       authors: [post.author.name || "Anonymous"],
+      tags: post.tags.map((tag: any) => tag.name),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt || post.content.substring(0, 160).replace(/<[^>]*>/g, ""),
+      images: post.coverImage ? [post.coverImage] : [],
+    },
+    alternates: {
+      canonical: postUrl,
     },
   };
 }
 
-export default async function PostPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const post = await getPost(params.slug);
+export default async function PostPage(
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+  const post = await getPost(slug);
   const session = await getServerSession(authOptions);
 
   if (!post) {
@@ -83,16 +108,18 @@ export default async function PostPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link href="/my-posts" className="text-blue-600 hover:text-blue-700">
-            ← Back to Posts
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back Navigation */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="text-gray-600 hover:text-gray-900 transition flex items-center gap-2"
+          >
+            <span>←</span> Back to Home
+          </Link>
+        </div>
         {/* Post Content */}
         <article className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden p-8">
           {/* Cover Image */}
@@ -121,7 +148,12 @@ export default async function PostPage({
               </div>
             )}
             <div>
-              <p className="font-medium text-lg">{post.author.name}</p>
+              <Link 
+                href={`/users/${post.author.username}`}
+                className="font-medium text-lg hover:text-yellow-700 transition"
+              >
+                {post.author.name}
+              </Link>
               <p className="text-sm text-gray-500">
                 {new Date(post.createdAt).toLocaleDateString("en-US", {
                   year: "numeric",
@@ -155,15 +187,16 @@ export default async function PostPage({
           {/* Actions */}
           <PostActions post={{ id: post.id, slug: post.slug, title: post.title, excerpt: post.excerpt || undefined, _count: post._count }} />
 
-          {/* Edit button for author */}
+          {/* Edit/Delete buttons for author */}
           {isAuthor && (
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-6 pt-6 border-t flex items-center gap-4">
               <Link
                 href={`/write/${post.id}`}
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
                 Edit Post →
               </Link>
+              <DeletePostButton postId={post.id} postSlug={post.slug} />
             </div>
           )}
         </article>
@@ -190,7 +223,33 @@ export default async function PostPage({
             </div>
           </div>
         )}
+
+        {/* Comments Section */}
+        <CommentsSection postId={post.id} />
       </main>
+
+      <Footer />
     </div>
   );
 }
+
+// Generate static params for published posts (SSG)
+export async function generateStaticParams() {
+  try {
+    const posts = await prisma.post.findMany({
+      where: { published: true },
+      select: { slug: true },
+      take: 100, // Generate first 100 posts statically
+    });
+
+    return posts.map((post) => ({
+      slug: post.slug,
+    }));
+  } catch (error) {
+    console.error("Error generating static params:", error);
+    return [];
+  }
+}
+
+// Revalidate every 60 seconds (ISR)
+export const revalidate = 60;

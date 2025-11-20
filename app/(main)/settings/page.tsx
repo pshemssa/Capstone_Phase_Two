@@ -8,7 +8,10 @@ import Footer from "../../components/layout/Footer";
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
   const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -18,7 +21,30 @@ export default function SettingsPage() {
     if (session?.user && 'username' in session.user && session.user.username) {
       setUsername(session.user.username as string);
     }
-  }, [session?.user]);
+    if (session?.user?.name) {
+      setName(session.user.name);
+    }
+    // Fetch user data including bio
+    if (status === "authenticated") {
+      fetchUserData();
+    }
+  }, [session?.user, status]);
+
+  async function fetchUserData() {
+    try {
+      const res = await fetch("/api/users/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUsername(data.user.username || "");
+          setName(data.user.name || "");
+          setBio(data.user.bio || "");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+    }
+  }
 
   const isAuthed = status === "authenticated";
 
@@ -45,6 +71,35 @@ export default function SettingsPage() {
       setError(err.message);
     } finally {
       setSavingUsername(false);
+    }
+  }
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    setSavingProfile(true);
+    try {
+      const res = await fetch("/api/users/me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          bio: bio.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+      setMessage("Profile updated");
+      if (session?.user) {
+        await update();
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -95,6 +150,43 @@ export default function SettingsPage() {
         {error && (
           <div className="mb-4 rounded-md bg-red-50 p-4 text-red-700 border border-red-200">{error}</div>
         )}
+
+        <section className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Information</h2>
+          <form onSubmit={handleProfileSave} className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                placeholder="Your name"
+              />
+            </div>
+            <div>
+              <label htmlFor="bio" className="block text-sm font-medium text-gray-700">Bio</label>
+              <textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                maxLength={500}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                placeholder="Tell us about yourself..."
+              />
+              <p className="text-xs text-gray-500 mt-1">{bio.length}/500 characters</p>
+            </div>
+            <button
+              type="submit"
+              disabled={savingProfile}
+              className="inline-flex items-center justify-center rounded-md bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 disabled:opacity-50"
+            >
+              {savingProfile ? "Saving..." : "Save Profile"}
+            </button>
+          </form>
+        </section>
 
         <section className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Change Username</h2>
