@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import FollowButton from "../users/FollowButton";
 
 interface PostActionsProps {
   post: { id: string; slug: string; title: string; excerpt?: string; _count: { likes: number; comments: number } };
@@ -149,6 +150,7 @@ export default function PostActions({ post }: PostActionsProps) {
             } ${isLiking ? "opacity-50" : ""}`}
             aria-label={liked ? "Unlike this post" : "Like this post"}
           >
+           
             <Heart 
               className={`w-5 h-5 mr-2 transition-transform ${liked ? "fill-current scale-110" : ""} ${isLiking ? "animate-pulse" : ""}`} 
               strokeWidth={liked ? 0 : 2}

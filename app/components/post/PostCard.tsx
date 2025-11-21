@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Post } from "../../types";
 
+
 interface PostCardProps {
   post: Post;
 }
@@ -166,6 +167,7 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 flex items-center justify-center text-white text-xs font-semibold">
             {post.author.name.substring(0, 2).toUpperCase()}
           </div>
+          
         )}
         <Link
           href={`/users/${post.author.username}`}
@@ -175,8 +177,8 @@ export default function PostCard({ post }: PostCardProps) {
           {post.author.name}
         </Link>
       </div>
-
-      {/* Content */}
+        
+      {/* Cvontent */}
       <div className="flex gap-6">
         <div className="flex-1">
           <Link href={`/post/${post.slug}`} onClick={(e) => e.stopPropagation()}>

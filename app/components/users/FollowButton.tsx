@@ -109,4 +109,3 @@ export default function FollowButton({ username }: FollowButtonProps) {
     </Button>
   );
 }
-

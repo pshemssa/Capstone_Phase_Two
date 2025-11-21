@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../../lib/prisma";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -19,20 +19,19 @@ export async function POST(req: NextRequest) {
     
     // Validate input
     const validatedData = signupSchema.parse(body);
-    const email = validatedData.email.trim().toLowerCase();
 
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
+          { email: validatedData.email },
           { username: validatedData.username },
         ],
       },
     });
 
     if (existingUser) {
-      if (existingUser.email === email) {
+      if (existingUser.email === validatedData.email) {
         return NextResponse.json(
           { error: "Email already registered" },
           { status: 400 }
@@ -47,13 +46,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(validatedData.password.trim(), 10);
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
     // Create user
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
-        email,
+        email: validatedData.email,
         username: validatedData.username,
         password: hashedPassword,
       },
@@ -72,12 +71,12 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      );
-    }
+  if (error instanceof ZodError) {
+  return NextResponse.json(
+    { error: error.issues[0].message },
+    { status: 400 }
+  );
+}
 
     console.error("Signup error:", error);
     return NextResponse.json(

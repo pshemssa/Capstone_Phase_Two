@@ -8,7 +8,6 @@ export default function Navigation() {
 
   const tabs = [
     { id: "home", icon: Home, label: "Latest" },
-   
   ];
 
   return (

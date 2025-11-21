@@ -92,6 +92,7 @@ export default function PostDetail({ post, isAuthor }: PostDetailProps) {
                     day: "numeric",
                     year: "numeric",
                   })}
+                  
                 </span>
                 <span>·</span>
                 <Clock className="w-3 h-3" />
