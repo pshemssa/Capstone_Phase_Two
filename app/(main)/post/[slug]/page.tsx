@@ -234,23 +234,27 @@ export default async function PostPage(
   );
 }
 
-// Generate static params for published posts (SSG)
-export async function generateStaticParams() {
-  try {
-    const posts = await prisma.post.findMany({
-      where: { published: true },
-      select: { slug: true },
-      take: 100, // Generate first 100 posts statically
-    });
-
-    return posts.map((post:any) => ({
-      slug: post.slug,
-    }));
-  } catch (error) {
-    console.error("Error generating static params:", error);
-    return [];
-  }
-}
-
-// Revalidate every 60 seconds (ISR)
+export const dynamic = "force-dynamic"; // Forces runtime DB fetching
 export const revalidate = 0;
+
+
+// // Generate static params for published posts (SSG)
+// export async function generateStaticParams() {
+//   try {
+//     const posts = await prisma.post.findMany({
+//       where: { published: true },
+//       select: { slug: true },
+//       take: 100, // Generate first 100 posts statically
+//     });
+
+//     return posts.map((post:any) => ({
+//       slug: post.slug,
+//     }));
+//   } catch (error) {
+//     console.error("Error generating static params:", error);
+//     return [];
+//   }
+// }
+
+// // Revalidate every 60 seconds (ISR)
+// export const revalidate = 0;
