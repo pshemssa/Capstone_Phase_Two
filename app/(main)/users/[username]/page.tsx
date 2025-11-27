@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
-import { prisma } from "../../../lib/prisma";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import PostCard from "../../../components/post/PostCard";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, UserMinus } from "lucide-react";
 import FollowButton from "../../../components/users/FollowButton";
+import prisma from "@/app/lib/prisma";
 
 async function getUser(username: string) {
   try {

@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { redirect, notFound } from "next/navigation";
 import PostEditor from "../../../components/post/PostEditor";
-import { prisma } from "../../../lib/prisma";
+import prisma from "@/app/lib/prisma";
+
 
 export const metadata: Metadata = {
   title: "Edit Story | Lumen Yard",

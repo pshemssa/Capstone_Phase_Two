@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { prisma } from "../../../lib/prisma";
 import { z, ZodError } from "zod";
+import prisma from "@/app/lib/prisma";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

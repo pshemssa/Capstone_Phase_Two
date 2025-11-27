@@ -2,13 +2,14 @@ import { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "../../lib/prisma";
+// import { prisma } from "../../lib/prisma";
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 import PostCard from "../../components/post/PostCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import prisma from "@/app/lib/prisma";
 
 export const metadata: Metadata = {
   title: "My Posts | Lumen Yard",
@@ -78,8 +79,8 @@ export default async function MyPostsPage() {
   }
 
   const posts = await getMyPosts(session);
-  const publishedCount = posts.filter((p) => p.published).length;
-  const draftCount = posts.filter((p) => !p.published).length;
+  const publishedCount = posts.filter((p:any) => p.published).length;
+  const draftCount = posts.filter((p:any) => !p.published).length;
 
   return (
     <div className="min-h-screen bg-gray-50">

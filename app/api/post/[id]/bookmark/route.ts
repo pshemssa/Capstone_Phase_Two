@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { authOptions } from "../../../../lib/auth";
-import { prisma } from "../../../../lib/prisma";
+import prisma from "@/app/lib/prisma";
+// import { prisma } from "../../../../lib/prisma";
 
-// GET - Check if user bookmarked + return bookmark count
+// GET  Check if user bookmarked + return bookmark count
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
