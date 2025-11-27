@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
-import { prisma } from "../../lib/prisma";
+// import { prisma } from "../../lib/prisma";
 import { z } from "zod";
+import prisma from "@/app/lib/prisma";
 
 const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
@@ -51,9 +52,7 @@ export async function GET(req: NextRequest) {
           orderBy: {
             createdAt: "asc",
           },
-          orderBy: {
-            createdAt: "asc",
-          },
+         
         },
       },
       orderBy: {

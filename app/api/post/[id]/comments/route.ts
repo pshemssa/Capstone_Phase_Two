@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { authOptions } from "../../../../lib/auth";
-import {prisma} from "../../../../lib/prisma";
+// import {prisma} from "../../../../lib/prisma";
 import { z } from "zod";
+import prisma from "@/app/lib/prisma";
 
 const commentSchema = z.object({
   content: z.string().min(1).max(1000),
@@ -42,9 +43,6 @@ export async function GET(
                 image: true,
               },
             },
-          },
-          orderBy: {
-            createdAt: "asc",
           },
           orderBy: {
             createdAt: "asc",

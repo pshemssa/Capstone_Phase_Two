@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { authOptions } from "../../../../lib/auth";
-import { prisma } from "../../../../lib/prisma";
+import prisma from "@/app/lib/prisma";
 
 // GET - Check follow status
 export async function GET(

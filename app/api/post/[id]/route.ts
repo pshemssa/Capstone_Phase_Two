@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { authOptions } from "../../../lib/auth";
-import { prisma } from "../../../lib/prisma";
 import { z } from "zod";
 import { handleApiError, createErrorResponse, createSuccessResponse } from "../../../lib/api-utils";
+import prisma from "@/app/lib/prisma";
 
 const updatePostSchema = z.object({
   title: z.string().min(1).max(200).optional(),

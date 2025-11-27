@@ -107,7 +107,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { authOptions } from "../../../../lib/auth";
-import { prisma } from "../../../../lib/prisma";
+import prisma from "@/app/lib/prisma";
 
 // GET — Check if user liked + return current like count
 export async function GET(

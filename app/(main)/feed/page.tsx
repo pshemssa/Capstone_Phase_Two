@@ -9,7 +9,8 @@ import Footer from "../../components/layout/Footer";
 import PostCard from "../../components/post/PostCard";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
-import { prisma } from "../../lib/prisma";
+import prisma from "@/app/lib/prisma";
+// import { prisma } from "../../lib/prisma";
 
 export const metadata: Metadata = {
   title: "Your Feed | Lumen Yard",
@@ -37,7 +38,7 @@ async function getFollowingPosts(session: any) {
     select: { followingId: true },
   });
 
-  const followingIds = following.map((f) => f.followingId);
+  const followingIds = following.map((f:any) => f.followingId);
 
   // If not following anyone, show recent posts
   if (followingIds.length === 0) {

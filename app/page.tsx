@@ -6,7 +6,7 @@ import Footer from "./components/layout/Footer";
 import PostCard from "./components/post/PostCard";
 import { Button } from "../components/ui/button";
 import { Post } from "./types";
-import { prisma } from "./lib/prisma";
+import prisma from "./lib/prisma";
 
 // Fetch published posts from the database and map to UI-friendly shape
 async function getPosts(limit: number = 10): Promise<Post[]> {
@@ -60,7 +60,7 @@ async function getTrendingTags(): Promise<string[]> {
     take: 10,
   });
 
-  return tags.map((t) => t.name);
+  return tags.map((t:any) => t.name);
 }
 
 async function getStaffPicks() {

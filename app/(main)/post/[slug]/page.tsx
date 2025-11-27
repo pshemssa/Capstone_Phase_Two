@@ -2,13 +2,14 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
-import {prisma} from "../../../lib/prisma";
+// import {prisma} from "../../../lib/prisma";
 import Link from "next/link";
 import PostActions from "../../../components/post/PostActions";
 import CommentsSection from "../../../components/post/CommentsSection";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import DeletePostButton from "../../../components/post/DeletePostButton";
+import prisma from "@/app/lib/prisma";
 
 
 
@@ -242,7 +243,7 @@ export async function generateStaticParams() {
       take: 100, // Generate first 100 posts statically
     });
 
-    return posts.map((post) => ({
+    return posts.map((post:any) => ({
       slug: post.slug,
     }));
   } catch (error) {
