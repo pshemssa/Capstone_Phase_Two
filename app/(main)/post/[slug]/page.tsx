@@ -253,4 +253,4 @@ export async function generateStaticParams() {
 }
 
 // Revalidate every 60 seconds (ISR)
-export const revalidate = 60;
+export const revalidate = 0;

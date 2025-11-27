@@ -94,7 +94,7 @@ function PostsLoading() {
 }
 
 // Revalidate every 60 seconds (ISR)
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function HomePage() {
   const posts = await getPosts(10);
