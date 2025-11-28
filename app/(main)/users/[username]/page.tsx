@@ -33,7 +33,7 @@ async function getUser(username: string) {
   }
 }
 
-async function getUserPosts(username: string) {
+async function getUserPosts(username: string, isOwnProfile: boolean = false) {
   try {
     const user = await prisma.user.findUnique({
       where: { username },
@@ -45,9 +45,9 @@ async function getUserPosts(username: string) {
     const posts = await prisma.post.findMany({
       where: {
         authorId: user.id,
-        published: true,
+        ...(isOwnProfile ? {} : { published: true }),
       },
-      orderBy: { publishedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       include: {
         author: {
           select: { id: true, name: true, username: true, image: true },
@@ -116,8 +116,7 @@ export default async function UserProfilePage(
   const { username } = await context.params;
   const user = await getUser(username);
   const session = await getServerSession(authOptions);
-  const posts = await getUserPosts(username);
-
+  
   if (!user) {
     notFound();
   }
@@ -126,6 +125,8 @@ export default async function UserProfilePage(
     session?.user &&
     ((session.user as any).username === user.username ||
       session.user.email === user.email);
+      
+  const posts = await getUserPosts(username, isOwnProfile);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -188,7 +189,14 @@ export default async function UserProfilePage(
           {posts.length > 0 ? (
             <>
               {posts.map((post: any) => (
-                <PostCard key={post.id} post={post} />
+                <div key={post.id} className="relative">
+                  {!post.published && isOwnProfile && (
+                    <div className="absolute top-2 right-2 z-10 bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
+                      Draft
+                    </div>
+                  )}
+                  <PostCard post={post} />
+                </div>
               ))}
             </>
           ) : (

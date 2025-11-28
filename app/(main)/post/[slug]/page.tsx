@@ -9,6 +9,7 @@ import CommentsSection from "../../../components/post/CommentsSection";
 import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import DeletePostButton from "../../../components/post/DeletePostButton";
+import FollowButton from "../../../components/users/FollowButton";
 import prisma from "@/app/lib/prisma";
 
 
@@ -136,33 +137,38 @@ export default async function PostPage(
           <h1 className="text-4xl md:text-5xl font-bold mb-4">{post.title}</h1>
 
           {/* Author Info */}
-          <div className="flex items-center gap-3 mb-6 pb-6 border-b">
-            {post.author.image ? (
-              <img
-                src={post.author.image}
-                alt={post.author.name || "Author"}
-                className="w-12 h-12 rounded-full"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                {post.author.name?.charAt(0) || "A"}
+          <div className="flex items-center justify-between mb-6 pb-6 border-b">
+            <div className="flex items-center gap-3">
+              {post.author.image ? (
+                <img
+                  src={post.author.image}
+                  alt={post.author.name || "Author"}
+                  className="w-12 h-12 rounded-full"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                  {post.author.name?.charAt(0) || "A"}
+                </div>
+              )}
+              <div>
+                <Link 
+                  href={`/users/${post.author.username}`}
+                  className="font-medium text-lg hover:text-yellow-700 transition"
+                >
+                  {post.author.name}
+                </Link>
+                <p className="text-sm text-gray-500">
+                  {new Date(post.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
               </div>
-            )}
-            <div>
-              <Link 
-                href={`/users/${post.author.username}`}
-                className="font-medium text-lg hover:text-yellow-700 transition"
-              >
-                {post.author.name}
-              </Link>
-              <p className="text-sm text-gray-500">
-                {new Date(post.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
             </div>
+            {session?.user && !isAuthor && (
+              <FollowButton username={post.author.username} />
+            )}
           </div>
 
           {/* Tags */}

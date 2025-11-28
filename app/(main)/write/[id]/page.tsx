@@ -14,8 +14,9 @@ export const metadata: Metadata = {
 export default async function EditPostPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -35,7 +36,7 @@ export default async function EditPostPage({
   // Fetch the post
   const post = await prisma.post.findFirst({
     where: {
-      OR: [{ id: params.id }, { slug: params.id }],
+      OR: [{ id }, { slug: id }],
       authorId: user.id,
     },
     include: {
