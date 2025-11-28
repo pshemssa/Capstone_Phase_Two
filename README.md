@@ -289,7 +289,7 @@ Update `DATABASE_URL` in Vercel with your production database URL.
 
    ## SignUp Page
 
-   ![alt text](public/image.png)
+  ![alt text](public/image_signup.png)
 
    ## Signup successfull page
 
