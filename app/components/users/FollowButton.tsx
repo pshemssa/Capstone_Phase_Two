@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserMinus } from "lucide-react";
@@ -20,15 +20,7 @@ export default function FollowButton({ username }: FollowButtonProps) {
     Boolean(session?.user) &&
     (session?.user as any)?.username === username;
 
-  useEffect(() => {
-    if (status !== "authenticated") {
-      setFollowing(false);
-      return;
-    }
-    checkFollowStatus();
-  }, [status, username]);
-
-  const checkFollowStatus = async () => {
+  const checkFollowStatus = useCallback(async () => {
     try {
       const res = await fetch(`/api/users/${username}/follow`);
       if (res.ok) {
@@ -38,7 +30,15 @@ export default function FollowButton({ username }: FollowButtonProps) {
     } catch (error) {
       console.error("Error checking follow status:", error);
     }
-  };
+  }, [username]);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setFollowing(false);
+      return;
+    }
+    checkFollowStatus();
+  }, [status, username, checkFollowStatus]);
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
