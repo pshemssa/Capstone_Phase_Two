@@ -285,47 +285,47 @@ Update `DATABASE_URL` in Vercel with your production database URL.
 ## screenshots
    ## Landing Page
 
-     ![alt text](public/image1.png)
+   ![alt text](public/image1.png)
 
    ## SignUp Page
 
-    ![alt text](image.png)
+   ![alt text](public/image.png)
 
    ## Signup successfull page
 
-    ![alt text](image-2.png)
+   ![alt text](public/image-2.png)
 
    ## SignIn Page
 
-      ![alt text](image-1.png)
+   ![alt text](public/image-1.png)
 
    ## successfully signing in landing page
 
-       ![alt text](image-3.png)
+   ![alt text](public/image-3.png)
 
    ## postdetails page
      
-     ![alt text](image-4.png)
+   ![alt text](public/image-4.png)
 
    ## write page
 
-    ![alt text](image-5.png)
+   ![alt text](public/image-5.png)
 
    ## profile page
 
-     ![alt text](image-6.png)
+   ![alt text](public/image-6.png)
 
    ## settings page
 
-      ![alt text](image-7.png)
+   ![alt text](public/image-7.png)
 
    ## profile page
 
-      ![alt text](image-8.png)
+   ![alt text](public/image-8.png)
 
  ## runned tests successfully
 
-     ![alt text](image.png)
+   ![alt text](public/image.png)
 
 ## License
 
