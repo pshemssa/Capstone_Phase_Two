@@ -77,7 +77,7 @@ export async function POST(
         select: { id: true },
       });
       if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       followerId = user.id;
     } else {
@@ -91,6 +91,7 @@ export async function POST(
     // Find user to follow
     const userToFollow = await prisma.user.findUnique({
       where: { username },
+      select: { id: true },
     });
 
     if (!userToFollow) {

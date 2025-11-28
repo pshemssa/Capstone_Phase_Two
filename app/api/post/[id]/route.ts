@@ -152,7 +152,7 @@ export async function PUT(
     }
 
     // Handle tags
-    let tagConnections;
+    let tagConnections: { id: string }[] | undefined;
     if (validatedData.tags) {
       const tagData = await Promise.all(
         validatedData.tags.map(async (tagName) => {
@@ -173,16 +173,7 @@ export async function PUT(
         })
       );
 
-      tagConnections = tagData.map((tag:any) => ({ id: tag.id }));
-
-      await prisma.post.update({
-        where: { id: post.id },
-        data: {
-          tags: {
-            set: [],
-          },
-        },
-      });
+      tagConnections = tagData.map((tag: any) => ({ id: tag.id }));
     }
 
     // Calculate read time if content changed
@@ -219,37 +210,52 @@ export async function PUT(
       }
     }
 
-    if (tagConnections) {
-      updateData.tags = {
-        connect: tagConnections,
-      };
-    }
 
-    const updatedPost = await prisma.post.update({
-      where: { id: post.id },
-      data: updateData,
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
+
+    // Use transaction to ensure data consistency
+    const updatedPost = await prisma.$transaction(async (tx) => {
+      // Clear existing tags if new tags are provided
+      if (tagConnections) {
+        await tx.post.update({
+          where: { id: post.id },
+          data: {
+            tags: {
+              set: [],
+            },
+          },
+        });
+        
+        updateData.tags = {
+          connect: tagConnections,
+        };
+      }
+      
+      return await tx.post.update({
+        where: { id: post.id },
+        data: updateData,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
+            },
+          },
+          tags: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
           },
         },
-        tags: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
-      },
+      });
     });
 
     return createSuccessResponse(
@@ -275,22 +281,18 @@ export async function DELETE(
   try {
     const { id } = await context.params;
     const session = await getServerSession(authOptions);
-    let userId: string | null = null;
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true },
-      });
-      if (!user) {
-        return createErrorResponse("User not found", 404);
-      }
-      userId = user.id;
-    } else {
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-      if (!token?.id) {
-        return createErrorResponse("Unauthorized", 401);
-      }
-      userId = token.id as string;
+
+    if (!session?.user?.email) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return createErrorResponse("User not found", 404);
     }
 
     const post = await prisma.post.findFirst({
@@ -303,7 +305,7 @@ export async function DELETE(
       return createErrorResponse("Post not found", 404);
     }
 
-    if (post.authorId !== userId) {
+    if (post.authorId !== user.id) {
       return createErrorResponse("Forbidden", 403);
     }
 
